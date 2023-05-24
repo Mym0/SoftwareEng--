@@ -1,17 +1,18 @@
-package dev.farhan.movieist.auth;
+package dev.memo.movieist.auth;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import dev.farhan.movieist.config.JwtService;
-import dev.farhan.movieist.user.Role;
-import dev.farhan.movieist.user.UserRepository;
-import dev.farhan.movieist.user.User;
+
+import dev.memo.movieist.config.JwtService;
+import dev.memo.movieist.token.Token;
+import dev.memo.movieist.token.TokenRepository;
+import dev.memo.movieist.token.TokenType;
+import dev.memo.movieist.user.Role;
+import dev.memo.movieist.user.User;
+import dev.memo.movieist.user.UserRepository;
 import lombok.RequiredArgsConstructor;
-import dev.farhan.movieist.token.Token;
-import dev.farhan.movieist.token.TokenRepository;
-import dev.farhan.movieist.token.TokenType;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +22,21 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+
+    private static AuthenticationService instance;
+
+    public static synchronized AuthenticationService getInstance(UserRepository repository,
+    TokenRepository tokenRepository,
+    PasswordEncoder passwordEncoder,
+    JwtService jwtService,
+    AuthenticationManager authenticationManager) {
+        if (instance == null) {
+            instance = new AuthenticationService(repository, tokenRepository, passwordEncoder, jwtService,
+            authenticationManager);
+        }
+        return instance;
+    }
+
 
     // Create User, save in DB, return generated Token
     public AuthenticationResponse register(RegisterRequest request) {
