@@ -1,7 +1,5 @@
-package dev.memo.movieist;
+package dev.memo.movieist.token;
 
-import dev.memo.movieist.token.Token;
-import dev.memo.movieist.token.TokenType;
 import dev.memo.movieist.user.User;
 import org.junit.jupiter.api.Test;
 
