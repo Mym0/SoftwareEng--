@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AuthenticationService {
-    private final UserRepository repository;
+    private final UserRepository userRepository;
     private final TokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -25,30 +25,23 @@ public class AuthenticationService {
 
     private static AuthenticationService instance;
 
-    public static synchronized AuthenticationService getInstance(UserRepository repository,
-    TokenRepository tokenRepository,
-    PasswordEncoder passwordEncoder,
-    JwtService jwtService,
-    AuthenticationManager authenticationManager) {
+    public static synchronized AuthenticationService getInstance(UserRepository userRepository,
+            TokenRepository tokenRepository,
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService,
+            AuthenticationManager authenticationManager) {
         if (instance == null) {
-            instance = new AuthenticationService(repository, tokenRepository, passwordEncoder, jwtService,
-            authenticationManager);
+            instance = new AuthenticationService(userRepository, tokenRepository, passwordEncoder, jwtService,
+                    authenticationManager);
         }
         return instance;
     }
 
-
     // Create User, save in DB, return generated Token
     public AuthenticationResponse register(RegisterRequest request) {
-        var user = User.builder()
-                .firstName(request.getFirstname())
-                .lastName(request.getLastname())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.USER)
-                .build();
-        var savedUser = repository.save(user);
-        var jwtToken = jwtService.generateToken(user);
+        var user = createUserFromRequest(request);
+        var savedUser = userRepository.save(user);
+        var jwtToken = jwtService.generateToken(savedUser);
         saveUserToken(savedUser, jwtToken);
         return AuthenticationResponse.builder()
                 .token(jwtToken)
@@ -57,11 +50,8 @@ public class AuthenticationService {
 
     // check for authentication of user and generate token.
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()));
-        var user = repository.findByEmail(request.getEmail())
+        authenticateUser(request.getEmail(), request.getPassword());
+        var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow();
         var jwtToken = jwtService.generateToken(user);
         revokeAllUserTokens(user);
@@ -69,6 +59,21 @@ public class AuthenticationService {
         return AuthenticationResponse.builder()
                 .token(jwtToken)
                 .build();
+    }
+
+    private User createUserFromRequest(RegisterRequest request) {
+        return User.builder()
+                .firstName(request.getFirstname())
+                .lastName(request.getLastname())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.USER)
+                .build();
+    }
+
+    private void authenticateUser(String email, String password) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(email, password));
     }
 
     private void saveUserToken(User user, String jwtToken) {

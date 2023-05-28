@@ -43,8 +43,8 @@ public class JwtService {
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername())
                 //token Validation Period is for a day
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 24))
+                .setIssuedAt(new Date())
+                .setExpiration(calculateExpirationDate())
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -56,7 +56,8 @@ public class JwtService {
     }
 
     boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+        final Date expirationDate = extractExpiration(token);
+        return expirationDate.before(new Date());
     }
 
     private Date extractExpiration(String token) {
@@ -76,5 +77,10 @@ public class JwtService {
     Key getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private Date calculateExpirationDate() {
+        final long expirationTimeMillis = System.currentTimeMillis() + 1000 * 60 * 24;
+        return new Date(expirationTimeMillis);
     }
 }
